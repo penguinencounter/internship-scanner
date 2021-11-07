@@ -1,32 +1,56 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import logging
+import hashlib
 
 TARGET_URL = 'https://sdsc.edu/education_and_training/internships.html'
-DATE_FORMAT = '%m%d%Y_%I%M%S%p'  # MMDDYYYY_HRMISEAM
 
 
-def get_page():
-    rqo = requests.get(TARGET_URL)
+def get_page(target_url: str):
+    rq = requests.get(TARGET_URL)
+    if not rq.status_code == 200:
+        raise IOError(f'Status code for request was not 200; instead it was {rq.status_code}')
+    return rq
 
 
-def scrape():
+def get_filename(target_url: str):
+    return target_url.split('/')[-1]+'.sum'
+
+
+def hash_it(content: bytes):
+    return hashlib.sha256(content).hexdigest()
+
+
+def get_old_hash(file_path: str):
+    content = ''
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            content = f.read()
+    return content
+
+
+def write_new_hash(file_path: str, content: str):
+    with open(file_path, 'w') as f:
+        f.write(content)
+
+
+def scrape(target_url: str):
     """
     Hit the website, scan contents, etc. (Main func)
     :return:
     """
-    hit = requests.get(TARGET_URL)
-    if not hit.status_code == 200:
-        raise IOError(f'Status code for request was not 200; instead it was {hit.status_code}')
-    date = datetime.now().strftime(DATE_FORMAT)  # Encode string according to current time and DATE_FORMAT
-    print(f'[{date}] Download success!')
-    real_filename = TARGET_URL.split('/')[-1]  # Name of the downloaded file, according to the URL
-    output_filename = f'{date}_{real_filename}'
-    with open(f'history/{output_filename}', 'wb') as f:
-        f.write(hit.content)
-    soup = BeautifulSoup(hit.text, 'html.parser')
+    hit = get_page(target_url)
+    output_filename = get_filename(target_url)
+    old = get_old_hash(f'storage/{output_filename}')
+    current = hash_it(hit.content)
+    if old != current:
+        print(f'Changed! {old[-10:]} -> {current[-10:]}')
+    else:
+        print(f'didn\'t change {old[-10:]} = {current[-10:]}')
+    write_new_hash(f'storage/{output_filename}', current)
+
 
 
 if __name__ == '__main__':
-    compare('Hello World', 'Hello there, World')
+    scrape(TARGET_URL)
