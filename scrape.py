@@ -6,14 +6,14 @@ TARGET_URL = 'https://sdsc.edu/education_and_training/internships.html'
 
 
 def get_page(target_url: str):
-    rq = requests.get(TARGET_URL)
+    rq = requests.get(target_url)
     if not rq.status_code == 200:
         raise IOError(f'Status code for request was not 200; instead it was {rq.status_code}')
     return rq
 
 
 def get_filename(target_url: str):
-    return target_url.split('/')[-1]+'.sum'
+    return target_url.split('/')[-1]
 
 
 def hash_it(content: bytes):
@@ -48,14 +48,14 @@ def scrape(target_url: str):
     """
     hit = get_page(target_url)
     output_filename = get_filename(target_url)
-    old = get_old_hash(f'storage/{output_filename}')
+    old = get_old_hash(f'storage/{output_filename}.sum')
     current = hash_it(hit.content)
     if old != current:
         print(f'Changed! {old[-10:]} -> {current[-10:]}')
+        post_message(f'{output_filename} file change', f'The contents of the file changed, check it out:\n{target_url}')
     else:
         print(f'didn\'t change {old[-10:]} = {current[-10:]}')
-    write_new_hash(f'storage/{output_filename}', current)
-    post_message(f'{output_filename} file change', f'The contents of the file changed, check it out:\n{target_url}')
+    write_new_hash(f'storage/{output_filename}.sum', current)
 
 
 if __name__ == '__main__':
