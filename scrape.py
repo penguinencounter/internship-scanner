@@ -1,7 +1,5 @@
 import os
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
 import hashlib
 
 TARGET_URL = 'https://sdsc.edu/education_and_training/internships.html'
@@ -35,6 +33,14 @@ def write_new_hash(file_path: str, content: str):
         f.write(content)
 
 
+def post_message(name: str, content: str):
+    with open('discord_hook.txt', 'r') as f:
+        hook_url = f.read().strip()
+    structure = {'content': content, 'username': name}
+    r = requests.post(hook_url, json=structure)
+    return r.status_code
+
+
 def scrape(target_url: str):
     """
     Hit the website, scan contents, etc. (Main func)
@@ -49,7 +55,7 @@ def scrape(target_url: str):
     else:
         print(f'didn\'t change {old[-10:]} = {current[-10:]}')
     write_new_hash(f'storage/{output_filename}', current)
-
+    post_message(f'{output_filename} file change', f'The contents of the file changed, check it out:\n{target_url}')
 
 
 if __name__ == '__main__':
