@@ -3,7 +3,7 @@ import requests
 import hashlib
 from bs4 import BeautifulSoup
 
-TARGET_URL = 'http://education.sdsc.edu/studenttech/?page_id=657'
+TARGET_URL = 'https://education.sdsc.edu/studenttech/rehs/'
 
 
 def get_page(target_url: str):
@@ -19,6 +19,8 @@ def safe_filename(unsafe: str):
 
 
 def get_filename(target_url: str):
+    if target_url.split('/')[-1] == '':
+        return safe_filename(target_url.split('/')[-2])
     return safe_filename(target_url.split('/')[-1])
 
 
@@ -60,7 +62,7 @@ def scrape(target_url: str):
     current = hash_it(bytes(found_element.getText(), 'utf-8'))
     if old != current:
         print(f'Changed! {old[-10:]} -> {current[-10:]}')
-        post_message(f'{output_filename} file change', f'The contents of the file changed, check it out:\n{target_url}')
+        post_message(f'{output_filename} file change', f'Page updated:\n{target_url}')
     else:
         print(f'didn\'t change {old[-10:]} = {current[-10:]}')
     write_new_hash(f'storage/{output_filename}.sum', current)
