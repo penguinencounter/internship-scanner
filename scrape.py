@@ -1,4 +1,6 @@
 import os
+import time
+
 import requests
 import hashlib
 from bs4 import BeautifulSoup
@@ -49,6 +51,13 @@ def post_message(name: str, content: str):
     return r.status_code
 
 
+def write_log(log_path: str, message: str):
+    with open(log_path, 'a') as f:
+        timestamp = time.strftime('%d%m%Y-%H%M%S')
+        log = f'[{timestamp}] scrape.py: {message}\n'
+        f.write(log)
+
+
 def scrape(target_url: str):
     """
     Hit the website, scan contents, etc. (Main func)
@@ -58,15 +67,20 @@ def scrape(target_url: str):
     output_filename = get_filename(target_url)
     old = get_old_hash(f'storage/{output_filename}.sum')
     soup = BeautifulSoup(hit.content, features="html.parser")
-    found_element = soup.select_one('#page')  # There's a "recommendations" bar at the bottom that changes every time.
+    found_element = soup.select_one('#page')  # FILTER HERE
     current = hash_it(bytes(found_element.getText(), 'utf-8'))
     if old != current:
         print(f'Changed! {old[-10:]} -> {current[-10:]}')
-        post_message(f'{output_filename} file change', f'Page updated:\n{target_url}')
+        post_message(f'{output_filename} file change', f'Page updated:\n{target_url}')  # Discord message content
+        write_log('log.log', f'File changed! {old[-10:]} -> {current[-10:]}')
     else:
         print(f'didn\'t change {old[-10:]} = {current[-10:]}')
+        write_log('log.log', f'didn\'t change {old[-10:]} = {current[-10:]}')
     write_new_hash(f'storage/{output_filename}.sum', current)
 
 
 if __name__ == '__main__':
-    scrape(TARGET_URL)
+    try:
+        scrape(TARGET_URL)
+    except Exception as e:
+        write_log('log.log', f'ERROR: {e}')
