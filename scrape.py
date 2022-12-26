@@ -5,7 +5,10 @@ import requests
 import hashlib
 from bs4 import BeautifulSoup
 
+from watch import Watch
+
 TARGET_URL = 'https://education.sdsc.edu/studenttech/rehs/'
+REHS = Watch("https://education.sdsc.edu/studenttech/rehs-application/", ('custom', 'rehs_application')) # custom.py
 
 
 def get_page(target_url: str):

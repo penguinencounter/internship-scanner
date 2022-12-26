@@ -1,3 +1,5 @@
 .idea/
 *.sum
+*.content
 discord_hook.txt
+watches.json
