@@ -102,7 +102,7 @@ def invoke(watches: List[Watch]):
             with open(watch.get_file_content_name(), 'rb') as f:
                 old_content = f.read()
         else:
-            old_content = b'N/A'
+            old_content = b''
 
         new, content = watch.run_and_hash()
         if old != new:
