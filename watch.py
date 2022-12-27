@@ -116,6 +116,20 @@ def invoke(watches: List[Watch]):
             old_content = b''
 
         new, content = watch.run_and_hash()
+
+        # Check for possible user errors
+        if len(watch.send_to) == 0:
+            print(f'WARNING: {watch.url} has no send_to targets, no messages will be sent!')
+
+        bad = False
+        for target in watch.send_to:
+            if target not in DISCORD:
+                print(f'ERROR: {watch.url} has an invalid send_to target (\"{target}\") and is invalid!')
+                bad = True
+        if bad:
+            print(f'NOTICE: {watch.url} skipped (invalid)')
+            continue
+
         if old != new:
             print(f'Page {watch.url} changed: diff ', end="", flush=True)
             lines = content.splitlines(keepends=True)
