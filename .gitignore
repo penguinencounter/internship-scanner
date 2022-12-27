@@ -2,4 +2,5 @@
 *.sum
 *.content
 discord_hook.txt
+discord.json
 watches.json

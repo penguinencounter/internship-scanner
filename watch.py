@@ -15,21 +15,31 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keep_characters).rstrip()
 
 
+with open('discord.json') as f:
+    DISCORD: dict = json.load(f)
+
+
 class Watch:
-    def __init__(self, url: str, select: Optional[Tuple[str, str]] = None, parse: bool = True):
+    def __init__(self, url: str, select: Optional[Tuple[str, str]] = None, parse: bool = True, send_to: List[str] = None):
         self.url = url
         self.select = select if select is not None else ('bs4', 'BeautifulSoup.get_text')  # module, function
         self.parse = parse
+        self.send_to = send_to if send_to is not None else []
 
     def dump(self):
-        return {'url': self.url, 'select': self.select, 'parse': self.parse}
+        return {'url': self.url, 'select': self.select, 'parse': self.parse, 'send_to': self.send_to}
 
     def __hash__(self):
-        return hash((self.url, self.select, self.parse))
+        return hash((self.url, self.select, self.parse, tuple(self.send_to)))
 
     @classmethod
     def load(cls, data: dict):
-        return cls(data['url'], data['select'] if 'select' in data else None, data['parse'] if 'parse' in data else True)
+        return cls(
+            data['url'],
+            data['select'] if 'select' in data else None,
+            data['parse'] if 'parse' in data else True,
+            data['send_to'] if 'send_to' in data else None
+        )
 
     def get_selector(self):
         # PAIN
@@ -74,20 +84,21 @@ def import_watches():
         return list(map(Watch.load, json.loads(f.read())))
 
 
-def post_message(name: str, content: str):
-    with open('discord_hook.txt', 'r') as f:
-        hook_url = f.read().strip()
+def post_message(name: str, target: str, content: str):
     structure = {'content': content, 'username': name}
-    r = requests.post(hook_url, json=structure)
+    r = requests.post(target, json=structure)
     return r.status_code
 
 
-def upload_as_file(name: str, fname: str, content: bytes):
-    with open('discord_hook.txt', 'r') as f:
-        hook_url = f.read().strip()
+def post_messages(name: str, targets: Iterable[str], content: str):
+    for target in targets:
+        post_message(name, target, content)
+
+
+def upload_as_file(name: str, target: str, fname: str, content: bytes):
     files = {'files': (fname, content, 'text/plain')}
     additional = {'username': name, 'content': 'Diff of changes:'}
-    r = requests.post(hook_url, files=files, data=additional)
+    r = requests.post(target, files=files, data=additional)
     return r.status_code
 
 
@@ -115,11 +126,12 @@ def invoke(watches: List[Watch]):
             )
 
             print(f'post ', end="", flush=True)
-            post_message("Watch v2", f"Change detected on {watch.url}")
+            post_messages("Watch v2", map(DISCORD.get, watch.send_to), f"Change detected on {watch.url}")
 
             # upload diff (diff.diff)
             print(f'upload ', end="", flush=True)
-            upload_as_file("Watch v2", f"{watch.get_page_name()}.diff", diff.encode())
+            for target in watch.send_to:
+                upload_as_file("Watch v2", DISCORD[target], f"{watch.get_page_name()}.diff", diff.encode())
 
             print(f'save ', end="", flush=True)
             with open(watch.get_file_sum_name(), 'w') as f:
