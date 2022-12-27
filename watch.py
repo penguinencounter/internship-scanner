@@ -16,19 +16,20 @@ def safe_filename(name):
 
 
 class Watch:
-    def __init__(self, url: str, select: Optional[Tuple[str, str]] = None):
+    def __init__(self, url: str, select: Optional[Tuple[str, str]] = None, parse: bool = True):
         self.url = url
         self.select = select if select is not None else ('bs4', 'BeautifulSoup.get_text')  # module, function
+        self.parse = parse
 
     def dump(self):
-        return {'url': self.url, 'select': self.select}
+        return {'url': self.url, 'select': self.select, 'parse': self.parse}
 
     def __hash__(self):
-        return hash((self.url, self.select))
+        return hash((self.url, self.select, self.parse))
 
     @classmethod
     def load(cls, data: dict):
-        return cls(data['url'], data['select'] if 'select' in data else None)
+        return cls(data['url'], data['select'] if 'select' in data else None, data['parse'] if 'parse' in data else True)
 
     def get_selector(self):
         # PAIN
@@ -39,7 +40,10 @@ class Watch:
         if not response.ok:
             raise IOError(f'Could not get page; status code {response.status_code}')
         selector = self.get_selector()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        if self.parse:
+            soup = BeautifulSoup(response.text, 'html.parser')
+        else:
+            soup = response.text
         return selector(soup)
 
     def run_and_hash(self) -> (str, bytes):
