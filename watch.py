@@ -3,11 +3,13 @@ import json
 import os
 from typing import *
 from hashlib import sha256
+import logging
+# noinspection PyUnresolvedReferences
 from importlib import import_module
 
 import requests
 from bs4 import BeautifulSoup
-from requests import get
+from requests import Session
 
 
 def safe_filename(name):
@@ -20,11 +22,23 @@ with open('discord.json') as f:
 
 
 class Watch:
-    def __init__(self, url: str, select: Optional[Tuple[str, str]] = None, parse: bool = True, send_to: List[str] = None):
+    def __init__(
+        self,
+        url: str,
+        select: Optional[Tuple[str, str]] = None,
+        parse: bool = True,
+        send_to: List[str] = None
+    ):
         self.url = url
         self.select = select if select is not None else ('bs4', 'BeautifulSoup.get_text')  # module, function
         self.parse = parse
         self.send_to = send_to if send_to is not None else []
+        self.my_session = Session()
+        self.my_session.headers.update({
+            "User-Agent": "notify-update/0.1.0 (contact penguinencounter2@gmail.com) python-requests/2.29.0",
+            "X-Notify-Update": "0.1.0",
+            "X-Task-Name": ':'.join(self.select)
+        })
 
     def dump(self):
         return {'url': self.url, 'select': self.select, 'parse': self.parse, 'send_to': self.send_to}
@@ -46,7 +60,7 @@ class Watch:
         return eval(f'import_module(\'{self.select[0]}\').{self.select[1]}')
 
     def run(self) -> str:
-        response = get(self.url)
+        response = self.my_session.get(self.url)
         if not response.ok:
             raise IOError(f'Could not get page; status code {response.status_code}')
         selector = self.get_selector()
@@ -156,6 +170,7 @@ def invoke(watches: List[Watch]):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     loaded = []
     if os.path.exists('watches.json'):
         loaded = import_watches()
