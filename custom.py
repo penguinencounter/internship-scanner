@@ -28,7 +28,8 @@ def royalroad_chapters(bs: BeautifulSoup) -> str:
     for chapter in chapters:
         title: bs4.Tag = next(filter(lambda el: el.get("class", "__ok__") != "text-right", chapter.findAll('td')))
         anchor = title.find('a')
-        result += f'- {anchor.get_text().strip()}\n'
+        result += f'* {anchor.get_text().strip()}\n'
+        result += '    ' + anchor.get('href') + '\n'
     result += '\n[ ' + chapter_count + ' chapters ]'
     return result
 
@@ -43,5 +44,5 @@ def royalroad_fictions(bs: BeautifulSoup) -> str:
             .find('h2', recursive=False)
             .find(text=True, recursive=False)
         )
-        result += f'- {title_name.strip()}\n'
+        result += f'* {title_name.strip()}\n'
     return result
