@@ -154,7 +154,7 @@ def invoke(watches: List[Watch]):
             )
 
             print(f'post ', end="", flush=True)
-            post_messages("Watch v2", map(DISCORD.get, watch.send_to), f"Change detected on {watch.url}")
+            post_messages("Watch v2", map(DISCORD.get, watch.send_to), f"Change detected on <{watch.url}>")
 
             # upload diff (diff.diff)
             print(f'upload ', end="", flush=True)
