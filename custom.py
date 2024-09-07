@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 
@@ -18,6 +19,10 @@ def gh_release_tracker(content: str) -> str:
     for release in d:
         new += f'{release["name"]} | {release["tag_name"]} @ {release["target_commitish"]}\n'
     return new
+
+
+def sha256(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
 
 
 def royalroad_chapters(bs: BeautifulSoup) -> str:

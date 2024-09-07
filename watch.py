@@ -11,6 +11,8 @@ import requests
 from bs4 import BeautifulSoup
 from requests import Session
 
+import adapt
+
 
 def safe_filename(name):
     keep_characters = (' ', '.', '_')
@@ -34,6 +36,7 @@ class Watch:
         self.parse = parse
         self.send_to = send_to if send_to is not None else []
         self.my_session = Session()
+        self.my_session.mount("https://", adapt.LenientHTTPAdapter())
         self.my_session.headers.update({
             "User-Agent": "notify-update/0.1.0 (contact penguinencounter2@gmail.com) python-requests/2.29.0",
             "X-Notify-Update": "0.1.0",

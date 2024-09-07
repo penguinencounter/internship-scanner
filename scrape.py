@@ -1,8 +1,8 @@
+import hashlib
 import os
 import time
 
 import requests
-import hashlib
 from bs4 import BeautifulSoup
 
 from watch import Watch
