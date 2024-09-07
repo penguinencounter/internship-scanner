@@ -67,11 +67,11 @@ class Watch:
         if not response.ok:
             raise IOError(f'Could not get page; status code {response.status_code}')
         selector = self.get_selector()
-        if self.parse:
+        if self.parse is True:
             soup = BeautifulSoup(response.text, 'html.parser')
         elif self.parse == "bytes":
             soup = response.content
-        elif not self.parse or self.parse == "text":
+        elif self.parse is False or self.parse == "text":
             soup = response.text
         else:
             raise ValueError(f'Invalid parse value: {self.parse}')
