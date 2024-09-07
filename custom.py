@@ -21,8 +21,8 @@ def gh_release_tracker(content: str) -> str:
     return new
 
 
-def sha256(content: str) -> str:
-    return hashlib.sha256(content.encode()).hexdigest()
+def sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
 
 
 def royalroad_chapters(bs: BeautifulSoup) -> str:

@@ -25,11 +25,11 @@ with open('discord.json') as f:
 
 class Watch:
     def __init__(
-        self,
-        url: str,
-        select: Optional[Tuple[str, str]] = None,
-        parse: bool = True,
-        send_to: List[str] = None
+            self,
+            url: str,
+            select: Optional[Tuple[str, str]] = None,
+            parse: bool | str = True,
+            send_to: List[str] = None
     ):
         self.url = url
         self.select = select if select is not None else ('bs4', 'BeautifulSoup.get_text')  # module, function
@@ -69,8 +69,12 @@ class Watch:
         selector = self.get_selector()
         if self.parse:
             soup = BeautifulSoup(response.text, 'html.parser')
-        else:
+        elif self.parse == "bytes":
+            soup = response.content
+        elif not self.parse or self.parse == "text":
             soup = response.text
+        else:
+            raise ValueError(f'Invalid parse value: {self.parse}')
         return selector(soup)
 
     def run_and_hash(self) -> (str, bytes):
@@ -121,55 +125,58 @@ def upload_as_file(name: str, target: str, fname: str, content: bytes):
 
 def invoke(watches: List[Watch]):
     for watch in watches:
-        if os.path.exists(watch.get_file_sum_name()):
-            with open(watch.get_file_sum_name(), 'r') as f:
-                old = f.read()
-        else:
-            old = ''
-        if os.path.exists(watch.get_file_content_name()):
-            with open(watch.get_file_content_name(), 'rb') as f:
-                old_content = f.read()
-        else:
-            old_content = b''
+        try:
+            if os.path.exists(watch.get_file_sum_name()):
+                with open(watch.get_file_sum_name(), 'r') as f:
+                    old = f.read()
+            else:
+                old = ''
+            if os.path.exists(watch.get_file_content_name()):
+                with open(watch.get_file_content_name(), 'rb') as f:
+                    old_content = f.read()
+            else:
+                old_content = b''
 
-        new, content = watch.run_and_hash()
+            new, content = watch.run_and_hash()
 
-        # Check for possible user errors
-        if len(watch.send_to) == 0:
-            print(f'WARNING: {watch.url} has no send_to targets, no messages will be sent!')
+            # Check for possible user errors
+            if len(watch.send_to) == 0:
+                print(f'WARNING: {watch.url} has no send_to targets, no messages will be sent!')
 
-        bad = False
-        for target in watch.send_to:
-            if target not in DISCORD:
-                print(f'ERROR: {watch.url} has an invalid send_to target (\"{target}\") and is invalid!')
-                bad = True
-        if bad:
-            print(f'NOTICE: {watch.url} skipped (invalid)')
-            continue
-
-        if old != new:
-            print(f'Page {watch.url} changed: diff ', end="", flush=True)
-            lines = content.splitlines(keepends=True)
-            old_lines = old_content.splitlines(keepends=True)
-            diff = ''.join(
-                difflib.unified_diff(list(map(lambda x: x.decode('utf-8'), old_lines)),
-                                     list(map(lambda x: x.decode('utf-8'), lines)), 'old', 'new', n=3)
-            )
-
-            print(f'post ', end="", flush=True)
-            post_messages("Watch v2", map(DISCORD.get, watch.send_to), f"Change detected on <{watch.url}>")
-
-            # upload diff (diff.diff)
-            print(f'upload ', end="", flush=True)
+            bad = False
             for target in watch.send_to:
-                upload_as_file("Watch v2", DISCORD[target], f"{watch.get_page_name()}.diff", diff.encode())
+                if target not in DISCORD:
+                    print(f'ERROR: {watch.url} has an invalid send_to target (\"{target}\") and is invalid!')
+                    bad = True
+            if bad:
+                print(f'NOTICE: {watch.url} skipped (invalid)')
+                continue
 
-            print(f'save ', end="", flush=True)
-            with open(watch.get_file_sum_name(), 'w') as f:
-                f.write(new)
-            with open(watch.get_file_content_name(), 'wb') as f:
-                f.write(content)
-            print('done')
+            if old != new:
+                print(f'Page {watch.url} changed: diff ', end="", flush=True)
+                lines = content.splitlines(keepends=True)
+                old_lines = old_content.splitlines(keepends=True)
+                diff = ''.join(
+                    difflib.unified_diff(list(map(lambda x: x.decode('utf-8'), old_lines)),
+                                         list(map(lambda x: x.decode('utf-8'), lines)), 'old', 'new', n=3)
+                )
+
+                print(f'post ', end="", flush=True)
+                post_messages("Watch v2", map(DISCORD.get, watch.send_to), f"Change detected on <{watch.url}>")
+
+                # upload diff (diff.diff)
+                print(f'upload ', end="", flush=True)
+                for target in watch.send_to:
+                    upload_as_file("Watch v2", DISCORD[target], f"{watch.get_page_name()}.diff", diff.encode())
+
+                print(f'save ', end="", flush=True)
+                with open(watch.get_file_sum_name(), 'w') as f:
+                    f.write(new)
+                with open(watch.get_file_content_name(), 'wb') as f:
+                    f.write(content)
+                print('done')
+        except Exception as e:
+            print(f'ERROR: {watch.url} failed with {e}')
 
 
 if __name__ == '__main__':
