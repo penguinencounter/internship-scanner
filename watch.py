@@ -28,7 +28,7 @@ class Watch:
             self,
             url: str,
             select: Optional[Tuple[str, str]] = None,
-            parse: bool | str = True,
+            parse: Union[bool, str] = True,
             send_to: List[str] = None
     ):
         self.url = url
